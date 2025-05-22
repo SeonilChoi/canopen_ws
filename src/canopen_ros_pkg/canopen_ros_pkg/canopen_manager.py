@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float64
 from sensor_msgs.msg import JointState
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from std_srvs.srv import Trigger
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
@@ -31,18 +32,23 @@ class CANOpenManager(Node):
         super().__init__('canopen_manager')
         self.initializeMotors()
         
-        QOS_REKL10V = QoSProfile(
+        QOS_REKL5V = QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=5,
             durability=QoSDurabilityPolicy.VOLATILE
         )
 
-        self.joint_state_pub = self.create_publisher(JointState, 'canopen/joint_states', QOS_REKL10V)
+        self.joint_state_pub = self.create_publisher(JointState, 'canopen/joint_states', QOS_REKL5V)
         self.joint_state_timer = self.create_timer(0.01, self.publishJointState)
         self.motor_status_serv = self.create_service(Trigger, 'canopen/check_motors', self.checkMotorsStatus)
         self.motor_errors_serv = self.create_service(Trigger, 'canopen/get_all_motors_errors', self.getAllMotorsErrors)
-        self.joint_state_sub = self.create_subscription(JointState, 'joint_states', self.JointStateCallback, QOS_REKL10V)
+        self.joint_trajectory_sub = self.create_subscription(
+            JointTrajectory,
+            'joint_trajectory',
+            self.JointTrajectoryCallback,
+            QOS_REKL5V
+        )
         self.count = 0;
         try:
             self.motor_controller = MotorController(channel=self.can_interface)
@@ -283,14 +289,14 @@ class CANOpenManager(Node):
         
         return response
         
-    def JointStateCallback(self, msg):
+    def JointTrajectoryCallback(self, msg):
         if not self.motor_controller:
-            self.get_logger().warn("[CANOpenManager::JointStateCallback] Motor controller not initialized, skipping joint state callback")
+            self.get_logger().warn("[CANOpenManager::JointTrajectoryCallback] Motor controller not initialized, skipping joint state callback")
             return
         
         self.motors_status_ok = self.isMotorStatusOK()
         if not self.motors_status_ok:
-            self.get_logger().warn("[CANOpenManager::JointStateCallback] Motors are not ready, skipping joint state callback")
+            self.get_logger().warn("[CANOpenManager::JointTrajectoryCallback] Motors are not ready, skipping joint state callback")
             self.motor_controller.disable_all_motors(error_motor_id=node_id, error_reason="motor status is not ready")
             return
         
@@ -298,11 +304,11 @@ class CANOpenManager(Node):
             motor_info = next((m for m in self.motors_info if m['name'] == joint_name), None)
             if motor_info:
                 node_id = motor_info['node_id']
-                goal_position = msg.position[i]
+                goal_position = msg.points[0].position[i]
                 try:
                     self.motor_controller.set_position(node_id, goal_position)
                 except Exception as e:
-                    self.get_logger().error(f"[CANOpenManager::JointStateCallback] Failed to set goal position for {joint_name}: {e}")
+                    self.get_logger().error(f"[CANOpenManager::JointTrajectoryCallback] Failed to set goal position for {joint_name}: {e}")
                     
         self.count += 1
         self.get_logger().info(f"count: {self.count}")
