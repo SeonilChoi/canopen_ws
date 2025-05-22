@@ -1,0 +1,12 @@
+sudo docker run \
+    --rm \
+    --user $(id -u):$(id -g) \
+    -e HOME=/home/shs \
+    -v /home/shs:/home/shs \
+    -v /etc/passwd:/etc/passwd:ro \
+    -v /etc/group:/etc/group:ro \
+    -v /dev:/dev \
+    --privileged \
+    --cap-add=NET_ADMIN \
+    --name ros_foxy_canopen \
+    -it ros/foxy:canopen bash
