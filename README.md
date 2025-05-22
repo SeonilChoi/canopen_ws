@@ -7,7 +7,7 @@ sudo slcand -o -s8 -t hw -S 1000000 /dev/canable can0 && \
   sudo ip link set can0 txqueuelen 1000
 ```
 
-2. Connect can to container (bash format)
+2. Connect can to container (.sh)
 ```
 if ! ip link show can0 &>/dev/null; then
   exit 1
