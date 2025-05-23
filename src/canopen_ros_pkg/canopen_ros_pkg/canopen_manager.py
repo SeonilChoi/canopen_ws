@@ -63,7 +63,7 @@ class CANOpenManager(Node):
                     Float64,
                     f'canopen/{motor_name}/command',
                     lambda msg, id=node_id: self.SingleJointCallback(msg, id),
-                    qos_profile=QOS_REKL10V
+                    qos_profile=QOS_REKL5V
                 )
 
             SYNC_INTERVAL = 0.05
@@ -300,11 +300,11 @@ class CANOpenManager(Node):
             self.motor_controller.disable_all_motors(error_motor_id=node_id, error_reason="motor status is not ready")
             return
         
-        for i, joint_name in enumerate(msg.name):
+        for i, joint_name in enumerate(msg.joint_names):
             motor_info = next((m for m in self.motors_info if m['name'] == joint_name), None)
             if motor_info:
                 node_id = motor_info['node_id']
-                goal_position = msg.points[0].position[i]
+                goal_position = msg.points[0].positions[i]
                 try:
                     self.motor_controller.set_position(node_id, goal_position)
                 except Exception as e:
