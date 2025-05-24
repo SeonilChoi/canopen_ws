@@ -66,7 +66,7 @@ class CANOpenManager(Node):
                     qos_profile=QOS_REKL5V
                 )
 
-            SYNC_INTERVAL = 0.05
+            SYNC_INTERVAL = 0.01
             self.motor_controller.all_motors_init_start(interval=SYNC_INTERVAL)
             self.get_logger().info("[CANOpenManager::init] Motor controller started")
         except Exception as e:
@@ -99,7 +99,7 @@ class CANOpenManager(Node):
         self.motors_status_ok = True
         self.motors_status_cache = {}
         self.last_joint_state_publish_time = self.get_clock().now()
-        self.status_check_interval = rclpy.duration.Duration(seconds=0.5)
+        self.status_check_interval = rclpy.duration.Duration(seconds=0.01)
 
         if self.setCANInterface(self.can_interface, self.can_txqueue_len):
             self.get_logger().info(f"[CANOpenManager::initializeMotors] CAN Interface {self.can_interface} setup complete")
